@@ -8,12 +8,24 @@ import type { ScanResult, ScanError } from "./types.js";
 
 export type ScanOutcome = { ok: true; result: ScanResult } | { ok: false; error: ScanError };
 
+// fetch() rejects with a bare "fetch failed" and hides the real reason (DNS,
+// TLS, connection refused) in err.cause — surface it so the user can act on it.
+export function describeError(err: unknown): string {
+  if (!(err instanceof Error)) return "Something went wrong while scanning the repository.";
+  const cause = err.cause as { code?: string; hostname?: string; message?: string } | undefined;
+  if (err.message === "fetch failed" && cause) {
+    if (cause.code === "ENOTFOUND") {
+      return `Network error: could not resolve ${cause.hostname ?? "host"} (DNS lookup failed). Check your connection or DNS settings.`;
+    }
+    const detail = [cause.code, cause.hostname].filter(Boolean).join(" ") || cause.message;
+    return `Network error while contacting GitHub${detail ? `: ${detail}` : ""}.`;
+  }
+  return err.message;
+}
+
 function toScanError(err: unknown): ScanError {
   if (err instanceof ScanLimitError) return { code: "limit_exceeded", message: err.message };
-  return {
-    code: "scan_failed",
-    message: err instanceof Error ? err.message : "Something went wrong while scanning the repository.",
-  };
+  return { code: "scan_failed", message: describeError(err) };
 }
 
 // Validate the URL, confirm the repo is public, download a snapshot of its
@@ -23,7 +35,12 @@ export async function scanRepo(repoUrlInput: string, limits: ScanLimits = DEFAUL
   const parsed = parseGithubUrl(repoUrlInput);
   if (!parsed.ok) return { ok: false, error: parsed.error };
 
-  const metaResult = await fetchRepoMetadata(parsed.ref, limits);
+  let metaResult;
+  try {
+    metaResult = await fetchRepoMetadata(parsed.ref, limits);
+  } catch (err) {
+    return { ok: false, error: toScanError(err) };
+  }
   if (!metaResult.ok) return { ok: false, error: metaResult.error };
   const { meta } = metaResult;
 

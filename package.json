@@ -1,6 +1,6 @@
 {
   "name": "marcal-scan",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Find exposed secrets and API keys in a GitHub repo or local folder, with a readable risk report, SARIF output, and a GitHub Action. Built on gitleaks.",
   "keywords": ["security", "secrets", "secret-scanning", "gitleaks", "sarif", "github-action", "devsecops"],
   "author": "Sebastián Quesada Calderón <squesadac@gmail.com>",

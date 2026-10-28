@@ -57,7 +57,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: MrDavidson23/marcal-scan@v0.1.0
+      - uses: MrDavidson23/marcal-scan@v0.1.1
         with:
           fail-on: high          # critical | high | medium | low | none
       - uses: github/codeql-action/upload-sarif@v3

@@ -6,7 +6,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { promisify } from "node:util";
-import { scanDirectory } from "../src/scan.js";
+import { describeError, scanDirectory } from "../src/scan.js";
 import { fakeGithubToken, gitleaksAvailable } from "./helpers.js";
 
 const run = promisify(execFile);
@@ -47,6 +47,14 @@ test("a scanned repo's own .gitleaks.toml cannot hide findings", { skip }, async
   } finally {
     await rm(dir, { recursive: true, force: true });
   }
+});
+
+test("describeError surfaces the real cause of a failed fetch", () => {
+  const dns = new TypeError("fetch failed", { cause: Object.assign(new Error("x"), { code: "ENOTFOUND", hostname: "codeload.github.com" }) });
+  assert.match(describeError(dns), /could not resolve codeload\.github\.com/);
+  const reset = new TypeError("fetch failed", { cause: Object.assign(new Error("x"), { code: "ECONNRESET" }) });
+  assert.match(describeError(reset), /Network error while contacting GitHub: ECONNRESET/);
+  assert.equal(describeError(new Error("plain")), "plain");
 });
 
 test("scanDirectory reports a missing directory", async () => {
