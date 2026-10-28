@@ -6,7 +6,7 @@ marcal-scan runs [gitleaks](https://github.com/gitleaks/gitleaks) with a pinned 
 
 It's the open-source engine behind the hosted scanner at [marcalsecurity.com](https://marcalsecurity.com).
 
-![Example HTML report](docs/report.png)
+![Example HTML report](https://raw.githubusercontent.com/MrDavidson23/marcal-scan/main/docs/report.png)
 
 ## Quick start
 
