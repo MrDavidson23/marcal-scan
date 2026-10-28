@@ -1,0 +1,52 @@
+name: marcal-scan
+description: Find exposed secrets and API keys in your repository, with a readable risk report and SARIF for code scanning.
+author: Sebastián Quesada Calderón
+branding:
+  icon: shield
+  color: purple
+
+inputs:
+  path:
+    description: Directory to scan.
+    default: "."
+  fail-on:
+    description: Fail the job if any finding is at or above this severity (critical, high, medium, low, none).
+    default: "high"
+  sarif-file:
+    description: Where to write the SARIF results (upload them with github/codeql-action/upload-sarif).
+    default: "marcal-scan.sarif"
+  html-file:
+    description: Where to write the HTML report (upload it with actions/upload-artifact).
+    default: "marcal-scan-report.html"
+
+runs:
+  using: composite
+  steps:
+    - uses: actions/setup-node@v4
+      with:
+        node-version: 20
+
+    - name: Build marcal-scan
+      shell: bash
+      working-directory: ${{ github.action_path }}
+      run: npm ci --no-audit --no-fund && npm run build
+
+    - name: Install gitleaks (pinned, checksum-verified)
+      shell: bash
+      run: node "$GITHUB_ACTION_PATH/scripts/install-gitleaks.mjs" "$RUNNER_TEMP/gitleaks"
+
+    # Inputs are passed through env, never interpolated into the script, so a
+    # crafted input can't inject shell commands.
+    - name: Scan for secrets
+      shell: bash
+      env:
+        GITLEAKS_BIN: ${{ runner.temp }}/gitleaks/gitleaks
+        INPUT_PATH: ${{ inputs.path }}
+        INPUT_FAIL_ON: ${{ inputs.fail-on }}
+        INPUT_SARIF: ${{ inputs.sarif-file }}
+        INPUT_HTML: ${{ inputs.html-file }}
+      run: |
+        node "$GITHUB_ACTION_PATH/dist/src/cli.js" "$INPUT_PATH" \
+          --fail-on "$INPUT_FAIL_ON" \
+          --sarif "$INPUT_SARIF" \
+          --html "$INPUT_HTML"

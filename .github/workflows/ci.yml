@@ -1,0 +1,49 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node: [20, 22]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+          cache: npm
+      - run: npm ci
+      - run: node scripts/install-gitleaks.mjs "$RUNNER_TEMP/gitleaks"
+      - run: npm test
+        env:
+          GITLEAKS_BIN: ${{ runner.temp }}/gitleaks/gitleaks
+
+  # The repo scans itself with its own action, and publishes the results to
+  # the Security tab.
+  self-scan:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./
+        with:
+          fail-on: high
+      - uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: marcal-scan.sarif
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: marcal-scan-report
+          path: marcal-scan-report.html

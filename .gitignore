@@ -1,0 +1,6 @@
+node_modules/
+dist/
+bin/
+*.sarif
+marcal-scan-report.html
+.DS_Store
